@@ -1,0 +1,5 @@
+# FinPilot dependencies — kept deliberately light.
+# The engine itself imports nothing third-party; pytest runs the tests and
+# streamlit is reserved for the upcoming UI phase.
+streamlit==1.41.1
+pytest==8.3.4

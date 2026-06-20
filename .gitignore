@@ -1,0 +1,16 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Test / coverage artifacts
+.coverage
+htmlcov/
+
+# Secrets / local config
+.env
+.streamlit/secrets.toml
