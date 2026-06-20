@@ -639,3 +639,45 @@ def simulate(profile: FinancialProfile, **overrides: object) -> SimulationResult
         resolved_rules=sorted(baseline_ids - scenario_ids),
         new_rules=sorted(scenario_ids - baseline_ids),
     )
+
+
+def simulate_scenario(
+    profile: FinancialProfile,
+    *,
+    income_pct: float = 0.0,
+    discretionary_cut_pct: float = 0.0,
+    payoff_debt: str | None = None,
+) -> SimulationResult:
+    """Map UI-style scenario knobs onto engine overrides and run :func:`simulate`.
+
+    This keeps the percentage arithmetic (which a UI would otherwise have to do) inside
+    the engine, so callers pass through raw control values and stay free of business logic.
+
+    Parameters
+    ----------
+    income_pct:
+        Percent change to monthly income (``+10`` = +10%, ``-20`` = -20%). Income is
+        floored at 0 so a -100% (or worse) knob can never produce a negative income.
+    discretionary_cut_pct:
+        Percent to trim from ``variable_expenses`` (``20`` = cut 20%). Floored at 0.
+    payoff_debt:
+        Name of a debt to remove (treated as paid off), or ``None`` to leave debts as-is.
+
+    Returns
+    -------
+    SimulationResult
+        The same rich comparison object returned by :func:`simulate`. With all knobs at
+        their neutral defaults the scenario equals the baseline (zero deltas).
+    """
+    overrides: dict[str, object] = {}
+    if income_pct:
+        overrides["monthly_income"] = max(
+            profile.monthly_income * (1 + income_pct / 100), 0.0
+        )
+    if discretionary_cut_pct:
+        overrides["variable_expenses"] = max(
+            profile.variable_expenses * (1 - discretionary_cut_pct / 100), 0.0
+        )
+    if payoff_debt:
+        overrides["debts"] = tuple(d for d in profile.debts if d.name != payoff_debt)
+    return simulate(profile, **overrides)

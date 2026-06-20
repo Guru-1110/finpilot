@@ -22,6 +22,7 @@ from engine import (
     monthly_surplus,
     savings_rate,
     simulate,
+    simulate_scenario,
     without_debt,
 )
 
@@ -359,6 +360,55 @@ def test_simulate_debt_payoff_resolves_high_apr_rule():
     # Assert.
     assert "R2" in result.resolved_rules
     assert result.scenario_metrics["total_min_debt_payments"] == pytest.approx(0.0)
+
+
+# ---------------------------------------------------------------------------
+# simulate_scenario — UI knob -> override mapping (all scenario math in engine)
+# ---------------------------------------------------------------------------
+def test_scenario_neutral_knobs_equal_baseline():
+    profile = healthy(
+        fixed_expenses=4300.0,
+        variable_expenses=500.0,
+        emergency_fund=1000.0,  # trips R1 so the baseline plan is non-empty
+    )
+    result = simulate_scenario(profile)
+    assert result.scenario == profile
+    assert all(d == 0 for d in result.deltas.values() if not isinstance(d, bool))
+    assert result.resolved_rules == []
+    assert result.new_rules == []
+
+
+def test_scenario_income_pct_scales_income_and_lifts_surplus():
+    profile = healthy()  # income 5000, surplus 2500
+    result = simulate_scenario(profile, income_pct=10)
+    assert result.scenario.monthly_income == pytest.approx(5500.0)
+    assert result.deltas["surplus"] == pytest.approx(500.0)
+
+
+def test_scenario_discretionary_cut_halves_variable():
+    profile = healthy(variable_expenses=800.0)
+    result = simulate_scenario(profile, discretionary_cut_pct=50)
+    assert result.scenario.variable_expenses == pytest.approx(400.0)
+    assert result.deltas["surplus"] == pytest.approx(400.0)  # freed-up spending
+
+
+def test_scenario_payoff_debt_removes_it():
+    profile = healthy(
+        debts=[
+            {"name": "Visa", "balance": 3000, "apr": 25, "min_payment": 90},
+            {"name": "Auto", "balance": 8000, "apr": 6, "min_payment": 200},
+        ]
+    )
+    result = simulate_scenario(profile, payoff_debt="Visa")
+    names = [d.name for d in result.scenario.debts]
+    assert names == ["Auto"]
+    assert "R2" in result.resolved_rules  # high-APR card clears once Visa is gone
+
+
+def test_scenario_income_cannot_go_negative():
+    profile = healthy()
+    result = simulate_scenario(profile, income_pct=-150)  # would be negative if unclamped
+    assert result.scenario.monthly_income == 0.0
 
 
 # ---------------------------------------------------------------------------

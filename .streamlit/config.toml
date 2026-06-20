@@ -1,0 +1,12 @@
+# FinPilot — high-contrast LIGHT theme (WCAG-AA: near-black text on white).
+# Chosen deliberately over dark mode so it reads well on projectors/demos.
+[theme]
+base = "light"
+primaryColor = "#0B5FFF"            # strong, accessible blue for accents/links
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF2F8"  # subtle panel/sidebar tint
+textColor = "#0A0A0A"               # near-black for maximum contrast
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
