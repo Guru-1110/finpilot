@@ -69,6 +69,17 @@ def run(
 # ---------------------------------------------------------------------------
 # Presentation helpers (formatting only)
 # ---------------------------------------------------------------------------
+def md_escape(s: str) -> str:
+    r"""Escape '$' as '\$' so currency amounts aren't parsed as LaTeX math.
+
+    Streamlit renders text between two '$' as a math expression (italic, spaces
+    dropped). Apply to free text rendered via st.write / st.markdown / st.caption /
+    st.info. Do NOT use on st.metric values — st.metric doesn't parse markdown, so a
+    backslash would show literally.
+    """
+    return s.replace("$", "\\$")
+
+
 def fmt_money(x: float) -> str:
     if x is None or (isinstance(x, float) and math.isinf(x)):
         return "—"
@@ -135,10 +146,10 @@ def render_card(rec: engine.Recommendation, rank: int, is_new: bool = False) -> 
         st.markdown(
             f"**#{rank} · Priority {rec.priority} (1 = highest) — {rec.title}**{badge}"
         )
-        st.write(rec.projected_impact)
+        st.write(md_escape(rec.projected_impact))
 
         with st.expander("Why this? (show the math)"):
-            st.markdown(f"**Rule {rec.rule_id}** — {rec.reason}")
+            st.markdown(f"**Rule {rec.rule_id}** — {md_escape(rec.reason)}")
             table = pd.DataFrame(
                 [
                     {"Figure": _humanize(k), "Value": _fmt_trigger_value(v)}
@@ -146,7 +157,7 @@ def render_card(rec: engine.Recommendation, rank: int, is_new: bool = False) -> 
                 ]
             )
             st.dataframe(table, hide_index=True, use_container_width=True)
-            st.caption(f"Projected impact: {rec.projected_impact}")
+            st.caption(f"Projected impact: {md_escape(rec.projected_impact)}")
 
 
 def render_plan(plan: list[engine.Recommendation], new: set[str] | None = None) -> None:
@@ -374,9 +385,11 @@ st.dataframe(
     },
 )
 st.caption(
-    "Monthly outflow by category: "
-    + ", ".join(f"{k} {fmt_money(v)}" for k, v in breakdown.items())
-    + f". Total monthly outflow {fmt_money(engine.monthly_expenses(profile))}."
+    md_escape(
+        "Monthly outflow by category: "
+        + ", ".join(f"{k} {fmt_money(v)}" for k, v in breakdown.items())
+        + f". Total monthly outflow {fmt_money(engine.monthly_expenses(profile))}."
+    )
 )
 
 
@@ -392,7 +405,8 @@ if st.button("Explain my plan in plain English"):
     with st.spinner("Writing your summary..."):
         st.session_state["narration"] = llm.narrate(result.baseline_plan, profile)
 if st.session_state.get("narration"):
-    st.info(st.session_state["narration"])
+    # Narration is built from the same reason/projected_impact strings, so escape it too.
+    st.info(md_escape(st.session_state["narration"]))
     source = "AI-generated (Gemini)" if llm.ai_enabled() else "Rule-based summary"
     st.caption(f"{source} · {DISCLAIMER}")
 
