@@ -1,6 +1,10 @@
 # FinPilot dependencies — kept deliberately light.
 # The engine imports nothing third-party; pytest runs the tests; streamlit is the UI.
 streamlit==1.41.1
+# Pin altair (a streamlit dep used by st.bar_chart) below 5.5: altair 5.5's
+# generated schema uses TypedDict(..., closed=True), which TypeErrors on Python 3.14.
+# streamlit 1.41.1 allows altair <6, so 5.4.1 is compatible.
+altair==5.4.1
 pytest==8.3.4
 
 # Optional: only used when an AI key is set. The app runs perfectly without it —
