@@ -344,17 +344,37 @@ st.caption(DISCLAIMER)
 st.header("Your financial snapshot")
 metric_row(result.baseline_metrics)  # baseline numbers, no deltas
 
-# Outflow breakdown bar chart + text alt-caption.
+# Outflow breakdown — rendered WITHOUT altair. st.bar_chart imports altair, whose
+# generated schema (TypedDict(..., closed=True)) crashes on Streamlit Cloud's Python
+# 3.14. st.dataframe + ProgressColumn gives a labeled horizontal-bar breakdown and
+# never touches altair, so the render path stays 3.14-safe.
 breakdown = {
     "Fixed": profile.fixed_expenses,
     "Variable": profile.variable_expenses,
 }
 for d in profile.debts:
     breakdown[f"{d.name} (min)"] = d.min_payment
-chart_df = pd.DataFrame({"Monthly $": list(breakdown.values())}, index=list(breakdown.keys()))
-st.bar_chart(chart_df)
+
+max_amount = max(breakdown.values())  # breakdown always has Fixed + Variable
+outflow_df = pd.DataFrame(
+    {"Category": list(breakdown.keys()), "Monthly $": list(breakdown.values())}
+)
+st.dataframe(
+    outflow_df,
+    hide_index=True,
+    use_container_width=True,
+    column_config={
+        "Category": st.column_config.TextColumn("Category"),
+        "Monthly $": st.column_config.ProgressColumn(
+            "Monthly outflow",
+            format="$%.0f",
+            min_value=0,
+            max_value=float(max_amount) if max_amount > 0 else 1.0,
+        ),
+    },
+)
 st.caption(
-    "Bar chart — monthly outflow by category: "
+    "Monthly outflow by category: "
     + ", ".join(f"{k} {fmt_money(v)}" for k, v in breakdown.items())
     + f". Total monthly outflow {fmt_money(engine.monthly_expenses(profile))}."
 )
