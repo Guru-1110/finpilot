@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 import engine
+import llm
 
 # Page config must be the first Streamlit call.
 st.set_page_config(page_title="FinPilot", page_icon="🧭", layout="wide")
@@ -365,6 +366,15 @@ st.caption(
 st.header("Your action plan")
 st.markdown("Ranked by priority (1 = most urgent). Open **Why this?** for the math behind each.")
 render_plan(result.baseline_plan)
+
+# Optional natural-language narration (works with or without an AI key).
+if st.button("Explain my plan in plain English"):
+    with st.spinner("Writing your summary..."):
+        st.session_state["narration"] = llm.narrate(result.baseline_plan, profile)
+if st.session_state.get("narration"):
+    st.info(st.session_state["narration"])
+    source = "AI-generated (Gemini)" if llm.ai_enabled() else "Rule-based summary"
+    st.caption(f"{source} · {DISCLAIMER}")
 
 
 # ---------------------------------------------------------------------------

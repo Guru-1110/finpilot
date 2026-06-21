@@ -1,5 +1,8 @@
 # FinPilot dependencies — kept deliberately light.
-# The engine itself imports nothing third-party; pytest runs the tests and
-# streamlit is reserved for the upcoming UI phase.
+# The engine imports nothing third-party; pytest runs the tests; streamlit is the UI.
 streamlit==1.41.1
 pytest==8.3.4
+
+# Optional: only used when an AI key is set. The app runs perfectly without it —
+# narration falls back to a deterministic plain-English summary.
+google-generativeai==0.8.3
